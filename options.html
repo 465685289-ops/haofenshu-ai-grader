@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>AI 阅卷助手 · 模型设置</title>
+<style>
+  :root { --c:#00b8d4; --bg:#f4f7fa; --card:#fff; --t:#1d2733; --m:#6b7785; }
+  * { box-sizing: border-box; }
+  body { margin:0; font:14px/1.6 -apple-system,"PingFang SC","Microsoft YaHei",sans-serif; background:var(--bg); color:var(--t); }
+  .wrap { max-width:640px; margin:40px auto; padding:0 16px; }
+  h1 { font-size:22px; margin:0 0 4px; }
+  .sub { color:var(--m); margin-bottom:24px; }
+  .card { background:var(--card); border-radius:14px; padding:24px; box-shadow:0 2px 12px rgba(0,0,0,.06); }
+  label { display:block; font-weight:600; margin:16px 0 6px; }
+  label:first-child { margin-top:0; }
+  select, input { width:100%; padding:10px 12px; border:1px solid #d5dde6; border-radius:8px; font-size:14px; background:#fff; }
+  select:focus, input:focus { outline:none; border-color:var(--c); box-shadow:0 0 0 3px rgba(0,184,212,.15); }
+  .row { display:flex; gap:12px; }
+  .row > div { flex:1; }
+  .hint { color:var(--m); font-size:12px; margin-top:4px; }
+  .hint a { color:var(--c); }
+  .warn { color:#d9480f; }
+  .keybox { position:relative; }
+  .keybox button { position:absolute; right:6px; top:6px; border:0; background:#eef3f7; border-radius:6px; padding:5px 10px; cursor:pointer; }
+  .btns { display:flex; gap:10px; margin-top:24px; }
+  .btn { padding:10px 20px; border-radius:8px; border:0; cursor:pointer; font-size:14px; font-weight:600; }
+  .primary { background:var(--c); color:#fff; }
+  .ghost { background:#eef3f7; color:var(--t); }
+  #status { margin-top:14px; min-height:22px; white-space:pre-wrap; word-break:break-all; }
+  .ok { color:#2b8a3e; } .err { color:#c92a2a; }
+  .privacy { margin-top:18px; color:var(--m); font-size:12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>AI 阅卷助手 · 模型设置</h1>
+  <div class="sub">选择模型供应商，填入你自己的 API Key。批改扫描答卷需要支持识图的视觉模型。</div>
+  <div class="card">
+    <label for="provider">模型供应商</label>
+    <select id="provider"></select>
+    <div class="hint" id="provNote"></div>
+
+    <label for="model">模型</label>
+    <select id="model"></select>
+    <input id="modelCustom" placeholder="输入模型名称或接入点 ID" style="margin-top:8px;display:none">
+
+    <label for="apiKey">API Key</label>
+    <div class="keybox">
+      <input id="apiKey" type="password" placeholder="sk-..." autocomplete="off">
+      <button id="toggleKey" type="button">显示</button>
+    </div>
+
+    <label for="baseUrl">接口地址（一般无需修改）</label>
+    <input id="baseUrl" placeholder="https://.../v1">
+
+    <div class="row">
+      <div>
+        <label for="temperature">温度（越低越稳定）</label>
+        <input id="temperature" type="number" min="0" max="1" step="0.1">
+      </div>
+      <div>
+        <label for="timeoutSec">单题超时（秒）</label>
+        <input id="timeoutSec" type="number" min="10" max="300" step="5">
+      </div>
+    </div>
+
+    <div class="btns">
+      <button class="btn primary" id="save">保存</button>
+      <button class="btn ghost" id="test">测试连接（识图）</button>
+    </div>
+    <div id="status"></div>
+    <div class="privacy">API Key 只保存在本机浏览器里，答题图片直接从你的浏览器发送到你选择的模型供应商，不经过任何第三方服务器。</div>
+  </div>
+</div>
+<script src="providers.js"></script>
+<script src="options.js"></script>
+</body>
+</html>

@@ -22,7 +22,7 @@
     minConf: 0.6, delay: 800, maxCount: 0, panelPos: null, profileName: ''
   };
   let cfg = Object.assign({}, DEFAULT_CFG);
-  const state = { running: false, paused: false, stopFlag: false, count: 0, total: 0, log: [], confirmResolve: null };
+  const state = { review: 0, running: false, paused: false, stopFlag: false, count: 0, total: 0, log: [], confirmResolve: null };
 
   async function loadCfg() {
     const o = await chrome.storage.local.get(HOSTKEY);
@@ -225,11 +225,11 @@
       <details id="dRun"><summary>③ 运行设置</summary><div class="sec">
         <label>模式</label>
         <select id="runMode">
-          <option value="auto">全自动：给分 → 提交 → 下一题</option>
+          <option value="auto">全自动：给分 → 提交 → 下一题（无人值守）</option>
           <option value="confirm">每题确认：AI 给分后由我确认再提交</option>
         </select>
         <div class="r">
-          <div><label>置信度低于此值时暂停</label><input id="minConf" type="number" min="0" max="1" step="0.05"></div>
+          <div><label>把握低于此值标「待复核」</label><input id="minConf" type="number" min="0" max="1" step="0.05"></div>
           <div><label>每题间隔(毫秒)</label><input id="delay" type="number" min="0" step="100"></div>
         </div>
         <label>最多批改题数（0 = 不限）</label><input id="maxCount" type="number" min="0" step="1">
@@ -614,16 +614,19 @@
       try { r = await gradeCurrent(); fails = 0; }
       catch (e) {
         fails++;
-        setRes(`<span style="color:#c92a2a">第 ${state.count + 1} 题出错：${esc(e.message)}</span>${fails < 3 ? '<div class="muted">3 秒后重试…</div>' : ''}`);
-        if (fails >= 3) { setStatus('出错停止'); break; }
-        await sleep(3000); continue;
+        const MAXF = 10;
+        const wait = Math.min(60, 5 * fails);
+        setRes(`<span style="color:#c92a2a">第 ${state.count + 1} 题出错：${esc(e.message)}</span>${fails < MAXF ? `<div class="muted">${wait} 秒后自动重试（第 ${fails}/${MAXF - 1} 次）…</div>` : ''}`);
+        if (fails >= MAXF) { setStatus('出错停止'); break; }
+        for (let i = 0; i < wait * 10 && !state.stopFlag; i++) await sleep(100);
+        continue;
       }
       if (state.stopFlag) { hideScan(); break; }
       const low = r.confidence < Number(cfg.minConf);
-      finishScan(low ? 'done warn' : 'done', `${esc(fmtScore(r.score))}<small>/ ${esc(cfg.fullScore)}</small>`, low || cfg.runMode === 'confirm' ? 60000 : 800);
-      showResult(r, `<div class="muted" style="margin-top:6px">用时 ${r.sec} 秒</div>`);
+      finishScan(low ? 'done warn' : 'done', `${esc(fmtScore(r.score))}<small>/ ${esc(cfg.fullScore)}</small>`, cfg.runMode === 'confirm' ? 60000 : 800);
+      showResult(r, `<div class="muted" style="margin-top:6px">用时 ${r.sec} 秒${low ? ' · 已标记待复核' : ''}</div>`);
       let finalScore = r.score;
-      if (cfg.runMode === 'confirm' || low) {
+      if (cfg.runMode === 'confirm') {
         setStatus('等待确认');
         const a = await askConfirm(r, low ? `AI 把握只有 ${Math.round(r.confidence * 100)}%，请你确认：` : '确认分数后提交：');
         hideScan();
@@ -640,8 +643,9 @@
         setRes(`<span style="color:#c92a2a">填分/提交失败：${esc(e.message)}</span>`); setStatus('出错停止'); break;
       }
       state.count++; state.total++;
-      state.log.push({ time: new Date().toLocaleString(), score: finalScore, ai: r.score, conf: r.confidence, reason: r.reason, recognized: r.recognized, model: r.model });
-      $('cnt').textContent = `已批 ${state.count} 题（本次会话 ${state.total}）`;
+      if (low) state.review++;
+      state.log.push({ time: new Date().toLocaleString(), review: low ? '待复核' : '', score: finalScore, ai: r.score, conf: r.confidence, reason: r.reason, recognized: r.recognized, model: r.model });
+      $('cnt').textContent = `已批 ${state.count} 题${state.review ? ` · 待复核 ${state.review}` : ''}`;
       setStatus('等待下一题');
       const moved = await waitNext(beforeDom, beforePix);
       if (state.stopFlag) break;
@@ -673,8 +677,8 @@
 
   function exportCsv() {
     if (!state.log.length) return alert('本次还没有批改记录');
-    const head = ['时间', '提交分', 'AI分', '把握', '理由', '识别内容', '模型'];
-    const rows = state.log.map(l => [l.time, l.score, l.ai, Math.round(l.conf * 100) + '%', l.reason, l.recognized, l.model]);
+    const head = ['时间', '复核标记', '提交分', 'AI分', '把握', '理由', '识别内容', '模型'];
+    const rows = state.log.map(l => [l.time, l.review, l.score, l.ai, Math.round(l.conf * 100) + '%', l.reason, l.recognized, l.model]);
     const csv = '\ufeff' + [head, ...rows].map(r => r.map(c => `"${String(c == null ? '' : c).replace(/"/g, '""')}"`).join(',')).join('\r\n');
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));

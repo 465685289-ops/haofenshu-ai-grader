@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<style>
+  body { width:260px; margin:0; padding:16px; font:13px/1.5 -apple-system,"PingFang SC","Microsoft YaHei",sans-serif; color:#1d2733; }
+  h2 { font-size:15px; margin:0 0 4px; }
+  .m { color:#6b7785; font-size:12px; margin-bottom:12px; word-break:break-all; }
+  button { width:100%; padding:9px; margin-top:8px; border:0; border-radius:8px; cursor:pointer; font-size:13px; font-weight:600; }
+  .p { background:#00b8d4; color:#fff; } .g { background:#eef3f7; }
+  #err { color:#c92a2a; font-size:12px; margin-top:8px; }
+</style>
+</head>
+<body>
+  <h2>AI 阅卷助手</h2>
+  <div class="m" id="model">读取设置中…</div>
+  <button class="p" id="open">在当前页面打开阅卷面板</button>
+  <button class="g" id="opt">模型与 API Key 设置</button>
+  <div id="err"></div>
+<script src="providers.js"></script>
+<script src="popup.js"></script>
+</body>
+</html>
